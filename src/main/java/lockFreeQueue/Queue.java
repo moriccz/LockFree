@@ -11,11 +11,13 @@ public class Queue<T> {
 	  private transient volatile Node<T> _tail;
     
 
-	  private final AtomicReferenceFieldUpdater<Node, Node>
-	    atomicUpdater =AtomicReferenceFieldUpdater.newUpdater(Node.class, Node.class, "_tail");
-	  private final AtomicReferenceFieldUpdater<Node, Node>
-	    atomicUpdater2 =AtomicReferenceFieldUpdater.newUpdater(Node.class, Node.class, "_head");
-	  
+	  @SuppressWarnings("rawtypes")
+	private final AtomicReferenceFieldUpdater<Queue, Node>
+	    tailUpdater =AtomicReferenceFieldUpdater.newUpdater(Queue.class, Node.class, "_tail");
+	  @SuppressWarnings("rawtypes")
+	private final AtomicReferenceFieldUpdater<Node, Node>
+	    nextUpdater =AtomicReferenceFieldUpdater.newUpdater(Node.class, Node.class, "next");
+	 
     public Queue()
     {
         _head = null;
@@ -50,14 +52,14 @@ public class Queue<T> {
             {
                 if (oldHead == oldTail)
                 {
-                   atomicUpdater.compareAndSet( _tail, oldTail, next);
+                   tailUpdater.compareAndSet( this, oldTail, next);
 
-                    if (next == null && atomicUpdater2.compareAndSet(_head.next, oldHead, null))
+                    if (next == null && nextUpdater.compareAndSet(_head, oldHead, null))
                         return null; 
                 }
                 else
                 {
-                    if (atomicUpdater.compareAndSet(_head.next, oldHead, next))
+                    if (nextUpdater.compareAndSet(_head, oldHead, next))
                         return oldHead.value;
                 }
             }
@@ -74,7 +76,7 @@ public class Queue<T> {
         {
             oldTail = _tail;
 
-            if (_tail == null && atomicUpdater.compareAndSet(_tail, null, node))
+            if (_tail == null && tailUpdater.compareAndSet(this, null, node))
                 break;
             
             next = oldTail.next;
@@ -83,18 +85,18 @@ public class Queue<T> {
             {
                 if (next == null)
                 {
-                    if (atomicUpdater.compareAndSet(_tail.next, null, node))
+                    if (nextUpdater.compareAndSet(_tail.next, null, node))
                         break;
                 }
                 else
                 {
-                	atomicUpdater.compareAndSet(_tail, oldTail, next);
+                	tailUpdater.compareAndSet(this, oldTail, next);
                 }
             }
         }
 
-        atomicUpdater.compareAndSet( _tail, oldTail, node);
-        atomicUpdater2.compareAndSet( _head.next, null, node);
+        tailUpdater.compareAndSet(this, oldTail, node);
+        nextUpdater.compareAndSet( _head.next, null, node);
     }
     
     
