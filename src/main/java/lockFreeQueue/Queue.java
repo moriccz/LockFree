@@ -85,7 +85,7 @@ public class Queue<T> {
             {
                 if (next == null)
                 {
-                    if (nextUpdater.compareAndSet(_tail.next, null, node))
+                    if (nextUpdater.compareAndSet(_tail, null, node))
                         break;
                 }
                 else
@@ -96,7 +96,7 @@ public class Queue<T> {
         }
 
         tailUpdater.compareAndSet(this, oldTail, node);
-        nextUpdater.compareAndSet( _head.next, null, node);
+        nextUpdater.compareAndSet( _tail, null, node);
     }
     
     
