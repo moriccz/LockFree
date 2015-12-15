@@ -40,13 +40,13 @@ public class Queue<T> {
         while (true)
         {
             oldTail = _tail;
-            head = _head.next;
+            head = _head.getNext();
 
             if (head == null)
                 return null;
 
             oldHead = head;
-            next = oldHead.next;
+            next = oldHead.getNext();
 
             if (head == oldHead)
             {
@@ -60,7 +60,7 @@ public class Queue<T> {
                 else
                 {
                     if (nextUpdater.compareAndSet(_head, oldHead, next))
-                        return oldHead.value;
+                        return oldHead.getValue();
                 }
             }
         }
@@ -69,17 +69,17 @@ public class Queue<T> {
     
     public void enqueue(T item){
     	Node<T> node = new Node<T>(item);
-        Node<T> oldTail;
-        Node<T> next;
+        Node<T> oldTail=new Node<T>();
+        Node<T> next=new Node<T>();
 
         while (true)
         {
             oldTail = _tail;
 
-            if (_tail == null && tailUpdater.compareAndSet(this, null, node))
+            if (tailUpdater.compareAndSet(this, null, node))
                 break;
             
-            next = oldTail.next;
+            next = oldTail.getNext();
 
             if (_tail == oldTail)
             {

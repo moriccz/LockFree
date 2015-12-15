@@ -1,5 +1,6 @@
 package selfOrganizingList;
 
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
 import lockFreeQueue.Node;
@@ -27,10 +28,9 @@ public class SelfOrganizingList<T> {
 	  @SuppressWarnings("rawtypes")
 	private final AtomicReferenceFieldUpdater<Node, Node>
 	    nextUpdater =AtomicReferenceFieldUpdater.newUpdater(Node.class, Node.class, "next");
-	  @SuppressWarnings("rawtypes")
-	private final AtomicReferenceFieldUpdater<Node, Node>
-	    valueUpdater =AtomicReferenceFieldUpdater.newUpdater(Node.class, Node.class, "value");
-	 
+	
+	  
+	  
    public SelfOrganizingList()
    {
        _head = null;
@@ -59,7 +59,7 @@ public class SelfOrganizingList<T> {
            if (_tail == null && tailUpdater.compareAndSet(this, null, node))
                break;
            
-           next = oldTail.next;
+           next = oldTail.getNext();
 
            if (_tail == oldTail)
            {
@@ -89,7 +89,7 @@ public class SelfOrganizingList<T> {
        do
        {
            oldReference = item;
-           next = item.next;
+           next = item.getNext();
 
            if (next==null)
            {
@@ -97,7 +97,7 @@ public class SelfOrganizingList<T> {
            }
            else
            {
-               newReference = new Node<T>( next.value,next.next);
+               newReference = new Node<T>( next.getValue(),next.getNext());
            }
            
        } while (!nextUpdater.compareAndSet(item, oldReference, newReference));
@@ -114,13 +114,13 @@ public void remove(T item)
            if (node == null)
                return;
 
-           if (node.value.equals(item))
+           if (node.getValue().equals(item))
            {
                remove(node);
                break;
            }
             
-           node = node.next;
+           node = node.getNext();
        }
    }
    
@@ -131,16 +131,16 @@ public void remove(T item)
 
        while (node != null)
        {
-           if (node == null || node.next==null)
+           if (node == null || node.getNext()==null)
                return null;
            
-           if (node.next.value.equals(item))
+           if (node.getNext().getValue().equals(item))
            {
                if(swap(node))
             	   	return node;
            }
             
-           node = node.next;
+           node = node.getNext();
        }
 	   
 	   return null;
@@ -154,17 +154,19 @@ public void remove(T item)
     */
    public boolean swap(Node<T> prev)
    {
-	   Node<T> oldPrev=prev;
-	   Node<T> oldMatch=prev.next;
+	   AtomicReference<Node> nodePrev=new AtomicReference<Node>(prev); 
+	   AtomicReference<Node> nodeNext=new AtomicReference<Node>(prev.getNext()); 
+	  
 	   
-	   while(oldPrev.next.equals(oldMatch)){
+	   Node<T> newNext=new Node(nodePrev.get().getValue(),nodeNext.get());
+	   Node<T> newPrev=new Node(nodeNext.get().getValue(),nodePrev.get());
 	   
-		   Node<T> newPrev=new Node<T>(oldMatch.value,oldPrev);
+	   while(nodePrev.get().getNext().equals(nodeNext.get())){
 		   
-		   if(valueUpdater.compareAndSet(oldMatch, prev, oldPrev)){
-			   valueUpdater.compareAndSet(oldPrev, oldMatch, newPrev);
+		   if(nodeNext.compareAndSet(nodeNext.get(), newNext)&&
+		      nodePrev.compareAndSet(nodePrev.get(), newPrev))
 			   return true;
-		   }	   
+		   
 	   }
 	   return false;
    }

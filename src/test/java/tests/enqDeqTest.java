@@ -1,27 +1,19 @@
 package tests;
 
-import static org.junit.Assert.*;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.testng.annotations.Test;
+
+import lockFreeQueue.Queue;
+
 
 public class enqDeqTest {
 
-	@Before
-	public void setUp() throws Exception {
-		
-		
-	}
+	Queue<Integer> sol=new Queue<Integer>(1);
 
-	@Test
+	@Test(threadPoolSize = 3, invocationCount = 9,  timeOut = 10000)
 	public void test() {
-		fail("Not yet implemented");
-	}
-	
-	
-	@After
-	public void tearDown()throws Exception{
+		for(int i=0;i<10;i++)
+		sol.enqueue(i);
 		
 		
 	}
