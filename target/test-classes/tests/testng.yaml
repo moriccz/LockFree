@@ -1,7 +1,0 @@
-name: Converted JUnit suite
-tests:
-  - name: JUnitTests
-    junit: true
-    classes:
-      - TestJunit
-

@@ -76,7 +76,7 @@ public class Queue<T> {
         {
             oldTail = _tail;
 
-            if (tailUpdater.compareAndSet(this, null, node))
+            if (_tail==null && tailUpdater.compareAndSet(this, null, node))
                 break;
             
             next = oldTail.getNext();
