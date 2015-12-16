@@ -3,18 +3,7 @@
 <suite thread-count="4" guice-stage="DEVELOPMENT" name="Failed suite [Suite]" parallel="methods">
   <test verbose="2" name="Default test">
     <classes>
-      <class name="tests.solTest"/>
+      <class name="tests.enqDeqTest"/>
     </classes>
   </test> <!-- Default test -->
-  <test name="Default test(failed)" parallel="methods">
-    <classes>
-      <class name="tests.solTest">
-        <methods>
-          <include name="afterTest"/>
-          <include name="beforeTest"/>
-          <include name="f"/>
-        </methods>
-      </class> <!-- tests.solTest -->
-    </classes>
-  </test> <!-- Default test(failed) -->
 </suite> <!-- Failed suite [Suite] -->

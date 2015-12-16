@@ -1,5 +1,6 @@
 package lockFreeQueue;
 
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
 
@@ -11,12 +12,8 @@ public class Queue<T> {
 	  private transient volatile Node<T> _tail;
     
 
-	  @SuppressWarnings("rawtypes")
-	private final AtomicReferenceFieldUpdater<Queue, Node>
-	    tailUpdater =AtomicReferenceFieldUpdater.newUpdater(Queue.class, Node.class, "_tail");
-	  @SuppressWarnings("rawtypes")
-	private final AtomicReferenceFieldUpdater<Node, Node>
-	    nextUpdater =AtomicReferenceFieldUpdater.newUpdater(Node.class, Node.class, "next");
+	  AtomicReference<Node> nextRef=new AtomicReference<Node>();
+      AtomicReference<Node> tailRef=new AtomicReference<Node>();
 	 
     public Queue()
     {
@@ -32,34 +29,38 @@ public class Queue<T> {
     
     
     public T dequeue(){
-    	Node<T> head;
+    	
         Node<T> oldHead;
-        Node<T> oldTail;
         Node<T> next;
-
+        Node<T> oldTail;
+        Node<T> head;
+        
+        tailRef.set(_tail);
+        nextRef.set(_head.getNext());
+        
         while (true)
         {
-            oldTail = _tail;
-            head = _head.getNext();
+        	 oldTail = tailRef.get();
+             head = nextRef.get();
 
             if (head == null)
                 return null;
 
-            oldHead = head;
+            oldHead = nextRef.get();
             next = oldHead.getNext();
 
-            if (head == oldHead)
+            if (next == oldHead)
             {
                 if (oldHead == oldTail)
                 {
-                   tailUpdater.compareAndSet( this, oldTail, next);
+                   tailRef.compareAndSet(oldTail, next);
 
-                    if (next == null && nextUpdater.compareAndSet(_head, oldHead, null))
+                    if (next == null && nextRef.compareAndSet(oldHead, null))
                         return null; 
                 }
                 else
                 {
-                    if (nextUpdater.compareAndSet(_head, oldHead, next))
+                    if (nextRef.compareAndSet(oldHead, next))
                         return oldHead.getValue();
                 }
             }
@@ -69,34 +70,38 @@ public class Queue<T> {
     
     public void enqueue(T item){
     	Node<T> node = new Node<T>(item);
-        Node<T> oldTail=new Node<T>();
-        Node<T> next=new Node<T>();
-
+        
+    	tailRef.set(_tail);
+    	nextRef.set(_tail.getNext());
+    	 
+        Node<T> oldTail;
+        Node<T> next;
         while (true)
         {
-            oldTail = _tail;
-
-            if (_tail==null && tailUpdater.compareAndSet(this, null, node))
+        	
+        	
+            oldTail=tailRef.get();
+            if (oldTail==null && tailRef.compareAndSet(null, node))
                 break;
             
-            next = oldTail.getNext();
+            next=oldTail.getNext();
 
-            if (_tail == oldTail)
+            if (oldTail == tailRef.get())
             {
-                if (next == null)
+                if (nextRef.get() == null)
                 {
-                    if (nextUpdater.compareAndSet(_tail, null, node))
+                    if (nextRef.compareAndSet(null, node))
                         break;
                 }
                 else
                 {
-                	tailUpdater.compareAndSet(this, oldTail, next);
+                	tailRef.compareAndSet(oldTail, next);
                 }
             }
         }
 
-        tailUpdater.compareAndSet(this, oldTail, node);
-        nextUpdater.compareAndSet( _tail, null, node);
+        tailRef.compareAndSet( oldTail, node);
+        nextRef.compareAndSet( null, node);
     }
     
     

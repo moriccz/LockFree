@@ -19,10 +19,13 @@ public class enqDeqTest {
 	
 	
 
-	@Test(threadPoolSize = 4, invocationCount = 4,  timeOut = 10000)
+	@Test(threadPoolSize = 1, invocationCount = 4,  timeOut = 10000)
 	public void test() {
 		for(int i=0;i<4;i++)
-		sol.enqueue(i);
+		{
+			sol.enqueue(i);
+			System.out.println(i);
+		}
 		
 		
 		
@@ -31,6 +34,8 @@ public class enqDeqTest {
 	
 	@AfterTest
 	public void showResult(){
+		System.out.println("dequeue");
+
 		for(int i=0;i<4;i++)
 		System.out.println(sol.dequeue());
 	}
