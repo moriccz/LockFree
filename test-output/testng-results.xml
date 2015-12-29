@@ -1,37 +1,45 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testng-results skipped="0" failed="0" total="4" passed="4">
+<testng-results skipped="0" failed="1" total="1" passed="0">
   <reporter-output>
   </reporter-output>
-  <suite name="Suite" duration-ms="52" started-at="2015-12-16T18:30:49Z" finished-at="2015-12-16T18:30:49Z">
+  <suite name="Suite" duration-ms="13147" started-at="2015-12-29T16:55:19Z" finished-at="2015-12-29T16:55:32Z">
     <groups>
     </groups>
-    <test name="Default test" duration-ms="52" started-at="2015-12-16T18:30:49Z" finished-at="2015-12-16T18:30:49Z">
-      <class name="tests.enqDeqTest">
-        <test-method status="PASS" signature="build()[pri:0, instance:tests.enqDeqTest@5474c6c]" name="build" is-config="true" duration-ms="12" started-at="2015-12-16T20:30:49Z" finished-at="2015-12-16T20:30:49Z">
+    <test name="Default test" duration-ms="13147" started-at="2015-12-29T16:55:19Z" finished-at="2015-12-29T16:55:32Z">
+      <class name="tests.solTest">
+        <test-method status="PASS" signature="beforeTest()[pri:0, instance:tests.solTest@78a2da20]" name="beforeTest" is-config="true" duration-ms="20" started-at="2015-12-29T18:55:19Z" finished-at="2015-12-29T18:55:19Z">
           <reporter-output>
           </reporter-output>
-        </test-method> <!-- build -->
-        <test-method status="PASS" signature="test()[pri:0, instance:tests.enqDeqTest@5474c6c]" name="test" duration-ms="12" started-at="2015-12-16T20:30:49Z" finished-at="2015-12-16T20:30:49Z">
+        </test-method> <!-- beforeTest -->
+        <test-method status="FAIL" signature="f()[pri:0, instance:tests.solTest@78a2da20]" name="f" duration-ms="11767" started-at="2015-12-29T18:55:19Z" finished-at="2015-12-29T18:55:30Z">
+          <exception class="java.lang.NullPointerException">
+            <full-stacktrace>
+              <![CDATA[java.lang.NullPointerException
+	at selfOrganizingList.SelfOrganizingList.search(SelfOrganizingList.java:132)
+	at tests.solTest.f(solTest.java:20)
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.lang.reflect.Method.invoke(Method.java:497)
+	at org.testng.internal.MethodInvocationHelper.invokeMethod(MethodInvocationHelper.java:86)
+	at org.testng.internal.InvokeMethodRunnable.runOne(InvokeMethodRunnable.java:54)
+	at org.testng.internal.InvokeMethodRunnable.run(InvokeMethodRunnable.java:44)
+	at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:511)
+	at java.util.concurrent.FutureTask.run(FutureTask.java:266)
+	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1142)
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:617)
+	at java.lang.Thread.run(Thread.java:745)
+]]>
+            </full-stacktrace>
+          </exception> <!-- java.lang.NullPointerException -->
           <reporter-output>
           </reporter-output>
-        </test-method> <!-- test -->
-        <test-method status="PASS" signature="test()[pri:0, instance:tests.enqDeqTest@5474c6c]" name="test" duration-ms="12" started-at="2015-12-16T20:30:49Z" finished-at="2015-12-16T20:30:49Z">
+        </test-method> <!-- f -->
+        <test-method status="PASS" signature="afterTest()[pri:0, instance:tests.solTest@78a2da20]" name="afterTest" is-config="true" duration-ms="1324" started-at="2015-12-29T18:55:30Z" finished-at="2015-12-29T18:55:32Z">
           <reporter-output>
           </reporter-output>
-        </test-method> <!-- test -->
-        <test-method status="PASS" signature="test()[pri:0, instance:tests.enqDeqTest@5474c6c]" name="test" duration-ms="12" started-at="2015-12-16T20:30:49Z" finished-at="2015-12-16T20:30:49Z">
-          <reporter-output>
-          </reporter-output>
-        </test-method> <!-- test -->
-        <test-method status="PASS" signature="test()[pri:0, instance:tests.enqDeqTest@5474c6c]" name="test" duration-ms="12" started-at="2015-12-16T20:30:49Z" finished-at="2015-12-16T20:30:49Z">
-          <reporter-output>
-          </reporter-output>
-        </test-method> <!-- test -->
-        <test-method status="PASS" signature="showResult()[pri:0, instance:tests.enqDeqTest@5474c6c]" name="showResult" is-config="true" duration-ms="4" started-at="2015-12-16T20:30:49Z" finished-at="2015-12-16T20:30:49Z">
-          <reporter-output>
-          </reporter-output>
-        </test-method> <!-- showResult -->
-      </class> <!-- tests.enqDeqTest -->
+        </test-method> <!-- afterTest -->
+      </class> <!-- tests.solTest -->
     </test> <!-- Default test -->
   </suite> <!-- Suite -->
 </testng-results>

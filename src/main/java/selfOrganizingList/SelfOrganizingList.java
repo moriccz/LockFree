@@ -17,133 +17,134 @@ import lockFreeQueue.Node;
 public class SelfOrganizingList<T> {
 
 	
-	 private transient volatile Node<T> _head = new Node<T>(null, null);
-
-	  private transient volatile Node<T> _tail;
+	AtomicReference<Node> tailRef=new AtomicReference<Node>();
+    AtomicReference<Node> headRef=new AtomicReference<Node>();
    
 
-	  @SuppressWarnings("rawtypes")
-	private final AtomicReferenceFieldUpdater<SelfOrganizingList, Node>
-	    tailUpdater =AtomicReferenceFieldUpdater.newUpdater(SelfOrganizingList.class, Node.class, "_tail");
-	  @SuppressWarnings("rawtypes")
-	private final AtomicReferenceFieldUpdater<Node, Node>
-	    nextUpdater =AtomicReferenceFieldUpdater.newUpdater(Node.class, Node.class, "next");
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+	public SelfOrganizingList(int i, int j){
+    	Node<T> tail=new Node(0,null);
+    	tailRef.set(tail);
+    	headRef.set(new Node(null,new Node(2,new Node(3,new Node(4,new Node(5,tailRef.get()))))));
+    }
 	
 	  
 	  
    public SelfOrganizingList()
    {
-       _head = null;
-       _tail = _head;
+		
+   	headRef.set(new Node<T>(null,null));
+   	tailRef.set(headRef.get());
    }
 
-   public SelfOrganizingList(T value) 
+   @SuppressWarnings("unchecked")
+public SelfOrganizingList(T value) 
    {
-       _head = new Node<T>(value);
-       _tail = _head; 
+
+   	tailRef.set(new Node<T>(value,null));
+   	headRef.set(new Node<T>(null,tailRef.get())); 
    }
    
    /*
     * insert the elemenent to the end of the list
     */
-   public void insert(T item)
+   @SuppressWarnings("unchecked")
+public void insert(T item)
    {
-	   Node<T> node = new Node<T>(item);
-       Node<T> oldTail;
-       Node<T> next;
-
-       while (true)
-       {
-           oldTail = _tail;
-
-           if (_tail == null && tailUpdater.compareAndSet(this, null, node))
-               break;
-           
-           next = oldTail.getNext();
-
-           if (_tail == oldTail)
-           {
-               if (next == null)
-               {
-                   if (nextUpdater.compareAndSet(_tail, null, node))
-                       break;
-               }
-               else
-               {
-               	tailUpdater.compareAndSet(this, oldTail, next);
-               }
-           }
-       }
-
-       tailUpdater.compareAndSet(this, oldTail, node);
-       nextUpdater.compareAndSet( _tail, null, node);
+	Node<T> node = new Node<T>(item,null);
+        
+    	
+        Node<T> oldTail;
+        Node<T> next;
+        
+        while (true)
+        {
+        	oldTail=tailRef.get();
+            
+            if (oldTail == null){	
+            System.out.println("break 1");
+        	break;
+        	}
+            
+            
+            
+            next=oldTail.getNext();
+            
+            if (oldTail == tailRef.get())
+            {
+                if (tailRef.compareAndSet(oldTail, node)){
+                	System.out.println("break 2");
+                	break;
+                	}
+            }
+            else{
+            	tailRef.compareAndSet(oldTail, next);
+            	
+            }
+        }
+        
+        System.out.println("break 3");
    }
    
-   public boolean remove(Node<T> item)
+   @SuppressWarnings({ "unchecked", "rawtypes" })
+public boolean remove(AtomicReference<Node> remNext)
    {
-
-       Node<T> next;
-       Node<T> oldReference;
-       Node<T> newReference;
-
-       do
-       {
-           oldReference = item;
-           next = item.getNext();
-
-           if (next==null)
-           {
-               newReference = null;
-           }
-           else
-           {
-               newReference = new Node<T>( next.getValue(),next.getNext());
-           }
-           
-       } while (!nextUpdater.compareAndSet(item, oldReference, newReference));
-	return false;   
+	   
+	 Node<T> current=remNext.get();
+	 Node<T> replace=current;
+	 replace.setNext(current.getNext().getNext());
+	 
+	 if(remNext.compareAndSet(current, replace))  return true;
+	 										else return false;
+         
    }
    
-@SuppressWarnings("unused")
-public void remove(T item)
+@SuppressWarnings({ "rawtypes", "unchecked" })
+public Node<T> remove(T item)
    {
-       Node<T> node = _head;
+       Node<T> node = headRef.get();
 
        while (node != null)
        {
-           if (node == null)
-               return;
-
-           if (node.getValue().equals(item))
+    	   if(node.getNext()!=null)
+           if (node.getNext().getValue().equals(item))
            {
-               remove(node);
-               break;
+        	   AtomicReference<Node> remNext=new AtomicReference<Node>(node);
+               remove(remNext);
+               return node;
            }
             
            node = node.getNext();
        }
+       
+       return null;
    }
    
    
-   public Node<T> search(T item)
+   @SuppressWarnings({ "unchecked", "rawtypes" })
+public Node<T> search(T item)
    {
-	   Node<T> node = _head;
-
+	   Node<T> node = headRef.get();
+	  
+	   
        while (node != null)
        {
            if (node == null || node.getNext()==null)
-               return null;
+               break;
            
            if (node.getNext().getValue().equals(item))
            {
-               if(swap(node))
-            	   	return node;
+        	   AtomicReference<Node> newNode = new AtomicReference<Node>(node);
+               if(newNode.compareAndSet(node,swap(newNode).get())){
+            		//node=swap(newNode).get();
+            	   	return newNode.get();
+            	   	}
            }
             
            node = node.getNext();
        }
 	   
-	   return null;
+	   return new Node(-1,null);
    }
    
    /*
@@ -152,23 +153,25 @@ public void remove(T item)
     * 	  matched value prev value
     *     
     */
-   public boolean swap(Node<T> prev)
+   @SuppressWarnings({ "unchecked", "rawtypes" })
+public AtomicReference<Node> swap(AtomicReference<Node> currRef)
    {
-	   AtomicReference<Node> nodePrev=new AtomicReference<Node>(prev); 
-	   AtomicReference<Node> nodeNext=new AtomicReference<Node>(prev.getNext()); 
-	  
+	   if(currRef==null)
+		   return null;
 	   
-	   Node<T> newNext=new Node(nodePrev.get().getValue(),nodeNext.get());
-	   Node<T> newPrev=new Node(nodeNext.get().getValue(),nodePrev.get());
+	   Node<T> currNode=currRef.get(); 
 	   
-	   while(nodePrev.get().getNext().equals(nodeNext.get())){
+	   Node<T> newNext=new Node(currRef.get().getValue(),currRef.get().getNext().getNext());
+	   Node<T> newCurr=new Node(currRef.get().getNext().getValue(),newNext);
+	   
+	   while(currRef.get().equals(currNode)){
 		   
-		   if(nodeNext.compareAndSet(nodeNext.get(), newNext)&&
-		      nodePrev.compareAndSet(nodePrev.get(), newPrev))
-			   return true;
+		    if(currRef.compareAndSet(currNode, newCurr))
+		       return currRef;
 		   
 	   }
-	   return false;
+	   
+	   return null;
    }
    
 }

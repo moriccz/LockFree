@@ -7,24 +7,27 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 public class Queue<T> {
 	
 	//Insert at tail and remove from head
-	  private transient volatile Node<T> _head = new Node<T>(null, null);
-
-	  private transient volatile Node<T> _tail;
-    
-
-	  AtomicReference<Node> nextRef=new AtomicReference<Node>();
-      AtomicReference<Node> tailRef=new AtomicReference<Node>();
+	 private transient volatile Node<T> _head = new Node<T>(null, null);
 	 
+	 public AtomicReference<Node> headRef=new AtomicReference<Node>();
+     public AtomicReference<Node> tailRef=new AtomicReference<Node>();
+     
+    public Queue(int i, int j){
+    	Node<T> tail=new Node(0,null);
+    	tailRef.set(tail);
+    	headRef.set(new Node(null,new Node(2,new Node(3,new Node(4,new Node(5,tailRef.get()))))));
+    }
     public Queue()
     {
-        _head = null;
-        _tail = _head;
+    	headRef.set(_head.getNext());
+    	tailRef.set(headRef.get());
     }
-
+      
     public Queue(T value) 
     {
-        _head = new Node<T>(value);
-        _tail = _head; 
+    	tailRef.set(new Node<T>(value,null));
+    	_head.setNext(tailRef.get());
+    	headRef.set(_head.getNext());
     }
     
     
@@ -33,75 +36,78 @@ public class Queue<T> {
         Node<T> oldHead;
         Node<T> next;
         Node<T> oldTail;
-        Node<T> head;
         
-        tailRef.set(_tail);
-        nextRef.set(_head.getNext());
         
         while (true)
         {
-        	 oldTail = tailRef.get();
-             head = nextRef.get();
-
-            if (head == null)
+        	oldTail = tailRef.get();
+            oldHead = headRef.get();
+            
+            if (oldHead == null)
                 return null;
 
-            oldHead = nextRef.get();
+            
             next = oldHead.getNext();
-
-            if (next == oldHead)
-            {
+           
                 if (oldHead == oldTail)
                 {
                    tailRef.compareAndSet(oldTail, next);
-
-                    if (next == null && nextRef.compareAndSet(oldHead, null))
-                        return null; 
+                   
+                   if (next == null && headRef.compareAndSet(oldHead, next))
+                        return oldTail.getValue(); 
+                
                 }
                 else
-                {
-                    if (nextRef.compareAndSet(oldHead, next))
-                        return oldHead.getValue();
+                { 
+                	T ret=(T)next.getValue();
+                    if (headRef.compareAndSet(oldHead, next))
+                        return ret;
                 }
-            }
+            
         }
     }
     
     
     public void enqueue(T item){
-    	Node<T> node = new Node<T>(item);
+    	Node<T> node = new Node<T>(item,null);
         
-    	tailRef.set(_tail);
-    	nextRef.set(_tail.getNext());
-    	 
+    	
         Node<T> oldTail;
         Node<T> next;
+        
         while (true)
         {
-        	
-        	
-            oldTail=tailRef.get();
-            if (oldTail==null && tailRef.compareAndSet(null, node))
-                break;
+        	oldTail=tailRef.get();
+            
+            if (oldTail == null){	
+            System.out.println("break 1");
+        	break;
+        	}
+            
+            
             
             next=oldTail.getNext();
-
+            
             if (oldTail == tailRef.get())
             {
-                if (nextRef.get() == null)
-                {
-                    if (nextRef.compareAndSet(null, node))
-                        break;
-                }
-                else
-                {
-                	tailRef.compareAndSet(oldTail, next);
-                }
+                if (tailRef.compareAndSet(oldTail, node)){
+                	System.out.println("break 2");
+                	break;
+                	}
+            }
+            else{
+            	tailRef.compareAndSet(oldTail, next);
+            	
             }
         }
-
-        tailRef.compareAndSet( oldTail, node);
-        nextRef.compareAndSet( null, node);
+        
+        System.out.println("break 3");
+        
+    //    if(headRef.get().getNext()==null && tailRef!=null)
+    //    	headRef.get().setNext(tailRef.get());
+        
+       
+       
     }
     
     
