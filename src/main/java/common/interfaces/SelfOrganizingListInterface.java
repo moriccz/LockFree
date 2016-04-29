@@ -1,14 +1,12 @@
-package lockfree.selfOrganizing;
+package common.interfaces;
 
-import lockfree.base.Node;
-
-public interface SelfOrganizingListInterface {
+public interface SelfOrganizingListInterface<T> {
 
 	public boolean add(int value);
 
 	public boolean remove(int value);
 
-	public Node search(int value);
+	public T search(int value);
 
 	public boolean contains(int value);
 
