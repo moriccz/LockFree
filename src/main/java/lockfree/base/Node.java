@@ -2,7 +2,9 @@ package lockfree.base;
 
 import java.util.concurrent.atomic.AtomicStampedReference;
 
-public class Node implements NodeInterface {
+import common.interfaces.NodeInterface;
+
+public class Node implements NodeInterface<Node> {
 
 	public static final int INIT_INT = -1;
 

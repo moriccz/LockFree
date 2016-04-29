@@ -1,139 +1,176 @@
 package lockfree.selfOrganizing;
 
+import java.util.concurrent.atomic.AtomicStampedReference;
+
+import common.interfaces.SelfOrganizingListInterface;
 import lockfree.base.Node;
 
-public class SelfOrganizingList implements SelfOrganizingListInterface {
+public class SelfOrganizingList implements SelfOrganizingListInterface<Node> {
 
 	private final int NONE = 0;
-
-	private final int ADD = 0;
-	private final int SEARCH = 0;
-	private final int REMOVE = 0;
-	private final int NOCHANGE = 0;
-
-	public Node head;
-	public Node tail;
+	private final int ADD = 1;
+	private final int SEARCH = 2;
+	private final int REMOVE = 3;
+	private final int BEFOREREMOVE = 6;
+	private final int AFTERREMOVE = 7;
+	public AtomicStampedReference<Node> head;
+	public AtomicStampedReference<Node> tail;
 
 	public SelfOrganizingList() {
-		head = new Node(Node.INIT_INT, null);
-		tail = new Node(Node.INIT_INT, head);
-	}
-
-	public Node iterate(int value) {
-		again: while (true) {
-			Node pred = head;
-			Node curr = pred.next.getReference();
-
-			// TODO better only if curr is the searched to get back
-			if (pred.getValue() == value) {
-				if (pred.isStamped() != 0)
-					continue again;
-				return pred;
-			}
-
-			if (curr.next != null) {
-				pred = curr;
-				curr = curr.next.getReference();
-			} else
-				return pred;
-		}
-
-	}
-
-	public boolean add(int value) {
-
-		again: while (true) {
-			Node pred = head;
-			Node curr = pred.next();
-
-			while (true) {
-
-				if (curr == null) {
-					if (pred.isStamped() != NONE)
-						continue again;
-					if (pred.next.attemptStamp(curr, ADD))
-						continue again;
-
-					Node node = new Node(value, curr);
-					if (pred.next.compareAndSet(curr, node, ADD, NONE))
-						return true;
-
-				}
-
-				// if(curr!=null){
-				pred = curr;
-				curr = curr.next.getReference();
-				// }
-			}
-
-		}
-	}
-
-	public boolean remove(int value) {
-		again: while (true) {
-			Node pred = head;
-			Node curr = pred.next();
-			Node next = curr.next();
-			while (true) {
-
-				if (curr.value == value) {
-					if (pred.isStamped() != NONE && curr.isStamped() != NONE)
-						continue again;
-					pred.tryStamp(curr, REMOVE);
-					curr.tryStamp(next, NOCHANGE);
-
-					if (pred.cas(next, curr, REMOVE, NONE))
-						return true;
-				}
-				if (next.next() == null)
-					return false;
-				pred = curr;
-				curr = next;
-				next = next.next();
-
-			}
-
-		}
-
+		head = new AtomicStampedReference<Node>(new Node(Node.INIT_INT, null), 0);
+		tail = new AtomicStampedReference<Node>(new Node(Node.INIT_INT, head.getReference()), 0);
 	}
 
 	/*
 	 * (non-Javadoc)
 	 * 
-	 * @see
-	 * com.licence.lockfree.selfOrganizing.SelfOrganizingListInterface#search(
-	 * int) <-----------> head - - - - pred - replacable - seached - - - tail
+	 * @see lockfree.selfOrganizing.SelfOrganizingListInterface#add(int) get to
+	 * tail and insert element
 	 */
-	public Node search(int value) {
+	public boolean add(int value) {
 
-		again: while (true) {
-			Node pred = head;
-			Node replacable = pred.next();
-			Node searched = replacable.next();
+		AtomicStampedReference<Node> current = head;
+		AtomicStampedReference<Node> next = current.getReference().next;
 
-			if (replacable.value == value)
-				return replacable;
+		back: while (true) {
+			// next is the tail
+			Node oldCurrent = current.getReference();
 
-			while (true) {
-				if (searched.value == value) {
-					if (pred.isStamped() != NONE && replacable.isStamped() != NONE && searched.isStamped() != NONE)
-						continue again;
-					pred.tryStamp(replacable, SEARCH);
-					replacable.tryStamp(searched, NOCHANGE);
+			if (next.getReference() == null) {
+				// element before tail is not stamped
+				if (current.getStamp() != NONE && next.getStamp() != NONE)
+					continue back;
 
-					Node newNode = new Node(searched.value, new Node(replacable.value, searched.next()));
+				// stamp tail
+				Node newCurrent = new Node(oldCurrent.value, new Node(value, null));
 
-					if (pred.cas(newNode, replacable, SEARCH, NONE))
-						return pred.next();
-
+				if (current.attemptStamp(oldCurrent, ADD)) {
+					// place new node with value to tail
+					if (current.compareAndSet(oldCurrent, newCurrent, ADD, NONE))
+						return true;
 				}
 
-				if (searched.next() == null)
-					return null;
+				continue back;
+			}
 
-				pred = replacable;
-				replacable = searched;
-				searched = searched.next();
+			current = next;
+			next = next.getReference().next;
+
+		}
+
+	}
+	/*
+	 * 
+	 * (non-Javadoc)
+	 * 
+	 * @see lockfree.selfOrganizing.SelfOrganizingListInterface#remove(int)
+	 * 
+	 * we have in the list -> first -> second -> third-> -> first -> third ->
+	 */
+
+	public boolean remove(int value) {
+
+		back: while (true) {
+			AtomicStampedReference<Node> first = head;
+			AtomicStampedReference<Node> second = first.getReference().next;
+			AtomicStampedReference<Node> third = second.getReference().next;
+
+			again: while (true) {
+
+				Node oldFirst = first.getReference();
+				Node oldSecond = second.getReference();
+				// if the removable node is the second element
+				if (second.getReference().getValue() == value) {
+
+					// if the mask is not stamped by others
+					if (first.getStamp() != NONE && second.getStamp() != NONE && third.getStamp() != NONE)
+						continue back;
+
+					// try stamp to begin removal
+					if (first.attemptStamp(oldFirst, BEFOREREMOVE) && second.attemptStamp(oldSecond, REMOVE)
+							&& third.attemptStamp(oldSecond.next(), AFTERREMOVE)) {
+
+						/*
+						 * create new node with value of first and next
+						 * reference of second to replace the first node
+						 */
+
+						Node afterRemove = new Node(oldFirst.getValue(), oldSecond.next());
+
+						// replace the node
+						if (first.compareAndSet(oldFirst, afterRemove, BEFOREREMOVE, NONE))
+							return true;
+
+					}
+				}
+				if (third.getReference() == null)
+					return false;
+
+				first = second;
+				second = third;
+				third = third.getReference().next;
+
+			}
+		}
+
+	}
+
+	public Node search(int value) {
+		again: while (true) {
+
+			// AtomicStampedReference<Node> before = head;
+
+			AtomicStampedReference<Node> swapA = head;
+			AtomicStampedReference<Node> swapB = swapA.getReference().next;
+
+			if (swapB.getReference().value == value)
+				return swapB.getReference();
+
+			back: while (true) {
+
+				// Node oldPredecessor = before.getReference();
+				Node oldReplacable = swapA.getReference();
+				Node oldSearchable = swapB.getReference();
+				// verify if it is the node with the searched value
+				if (swapB.getReference().value == value) {
+
+					// check if the mask is stamped anywhere
+					// if (before.getStamp() != NONE)
+					// continue again;
+
+					if (swapA.getStamp() != NONE)
+						continue again;
+
+					if (swapB.getStamp() != NONE)
+						continue back;
+
+					// stamp the mask
+					/* before.attemptStamp(oldPredecessor, STOPSEARCH) && */
+
+					if (swapA.attemptStamp(oldReplacable, SEARCH) && swapB.attemptStamp(oldSearchable, SEARCH)) {
+
+						// create the swaped construction from pred-a-b ->
+						// pred-b-a
+						Node swappedNode = new Node(oldSearchable.value,
+								new Node(oldReplacable.value, oldSearchable.next()));
+
+						// try to set the node
+						if (swapA.compareAndSet(oldReplacable, swappedNode, SEARCH, NONE)) {
+							return swapA.getReference();
+
+						}
+					}
+					continue back;
+				}
+
+				// if end of the list and it was not found
+				if (swapB.getReference().next() == null) {
+					return null;
+				}
+				// before = swapA;
+
+				swapA = swapB;
+				swapB = swapB.getReference().next;
 
 			}
 
@@ -142,7 +179,7 @@ public class SelfOrganizingList implements SelfOrganizingListInterface {
 
 	public boolean contains(int value) {
 		while (true) {
-			Node pred = head;
+			Node pred = head.getReference();
 
 			if (pred == null)
 				return false;
@@ -153,27 +190,34 @@ public class SelfOrganizingList implements SelfOrganizingListInterface {
 			pred = pred.next();
 
 		}
-
 	}
 
 	public boolean list() {
-		Node node = head.next.getReference();
+		Node node = head.getReference().next();
 		System.out.println("The List: ");
 		System.out.print("[ ");
-
-		do {
-			System.out.print(node.value + " ");
+		int k = 1, row = 0;
+		System.out.print(row + ": ");
+		while (node != null) {
+			if (k == 10) {
+				System.out.println(node.value);
+				row++;
+				k = 1;
+				System.out.print(row + "0: ");
+			} else {
+				k++;
+				System.out.print(node.value + " ");
+			}
 
 			node = node.next.getReference();
-		} while (node != null);
+		}
 		System.out.println(" ]");
 		return false;
 	}
 
 	public int size() {
-
 		int size = 0;
-		Node node = head;
+		Node node = head.getReference();
 		while (node.next.getReference() != null) {
 
 			size++;
